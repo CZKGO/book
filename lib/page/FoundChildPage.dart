@@ -15,7 +15,7 @@ class _FoundChildPage extends State<FoundChildPage>
   Widget build(BuildContext context) {
     // TODO: implement build
     return new Container(
-      color: Colors.pinkAccent
+      color: Colors.white
       ,
     );
   }

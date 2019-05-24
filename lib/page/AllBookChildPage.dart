@@ -15,7 +15,7 @@ class _AllBookChildPage extends State<AllBookChildPage>
   Widget build(BuildContext context) {
     // TODO: implement build
     return new Container(
-      color: Colors.blueGrey,
+      color: Colors.white,
     );
   }
 }

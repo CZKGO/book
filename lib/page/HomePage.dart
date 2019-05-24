@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_book/page/widget/WidthDrawer.dart';
+import 'package:flutter_book/page/widget/my_popup_menu.dart';
 import 'package:flutter_book/page/AllBookChildPage.dart';
 import 'package:flutter_book/page/FoundChildPage.dart';
 
@@ -7,22 +9,10 @@ class HomePage extends StatefulWidget {
   State<StatefulWidget> createState() => new _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with TickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
-    PageController _pageController =
-        PageController(initialPage: 0, keepPage: true, viewportFraction: 1.0);
     TabController _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-//      setState(() {
-//        debugPrint(_tabController.index.toString());
-////        _pageController.jumpTo(MediaQuery
-////            .of(context)
-////            .size
-////            .width * _tabController.index);
-//      });
-    });
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
@@ -30,7 +20,6 @@ class _HomePageState extends State<HomePage>
         iconTheme: IconThemeData(color: Colors.black87),
         centerTitle: true,
         title: Container(
-          margin: EdgeInsets.only(right: 16),
           width: double.infinity,
           height: 30,
           decoration: BoxDecoration(
@@ -47,6 +36,45 @@ class _HomePageState extends State<HomePage>
             ),
           ),
         ),
+        actions: <Widget>[
+          MyPopupMenuButton(
+            offset: Offset(0, 52),
+            padding: EdgeInsets.all(0.0),
+            kMenuScreenPadding: 0.0,
+            menuPdding: EdgeInsets.all(0),
+            itemBuilder: (BuildContext context) => <MyPopupMenuEntry>[
+                  MyPopupMenuItem(
+                    height: 40,
+                    child:
+                        _ActionBarListText(leading: Icons.add, title: "添加本地"),
+                  ),
+                  MyPopupMenuItem(
+                      height: 40,
+                      child: _ActionBarListText(
+                          leading: Icons.link, title: "添加网址")),
+                  MyPopupMenuItem(
+                      height: 40,
+                      child: _ActionBarListText(
+                          leading: Icons.file_download, title: "一键缓存")),
+                  MyPopupMenuItem(
+                      height: 40,
+                      child: _ActionBarListText(
+                          leading: Icons.list, title: "网格视图")),
+                  MyPopupMenuItem(
+                      height: 40,
+                      child: _ActionBarListText(
+                          leading: Icons.track_changes, title: "切换图标")),
+                  MyPopupMenuItem(
+                      height: 40,
+                      child: _ActionBarListText(
+                          leading: Icons.delete_outline, title: "清除缓存")),
+                  MyPopupMenuItem(
+                      height: 40,
+                      child: _ActionBarListText(
+                          leading: Icons.delete_forever, title: "清空书架")),
+                ],
+          ),
+        ],
         bottom: TabBar(
           indicatorColor: Color(0xffD81B60),
           indicatorPadding: EdgeInsets.symmetric(horizontal: 16),
@@ -55,29 +83,110 @@ class _HomePageState extends State<HomePage>
           tabs: [
             Tab(
               text: "所有书籍",
-//              child: AllBookChildPage(),
             ),
             Tab(
               text: "发现",
-//              child: FoundChildPage(),
             )
           ],
           controller: _tabController,
         ),
       ),
-      body: PageView(
+      body: TabBarView(
         children: [
           AllBookChildPage(),
           FoundChildPage(),
         ],
-        controller: _pageController,
-        onPageChanged: (index) {
-          _tabController.animateTo(index);
-        },
+        controller: _tabController,
       ),
-      drawer: Drawer(
-        child: ListView(),
+      drawer: WidthDrawer(
+        child: ListView(
+          children: <Widget>[
+            DrawerHeader(
+              padding: EdgeInsets.all(0),
+              child: Image.asset(
+                "images/image_yue_du.webp",
+                height: 130,
+                fit: BoxFit.cover,
+              ),
+            ),
+            _DrawListText(
+              leading: Icons.menu,
+              title: "书源管理",
+            ),
+            _DrawListText(
+              leading: Icons.find_replace,
+              title: "替换净化",
+            ),
+            _DrawListText(
+              leading: Icons.file_download,
+              title: "下载任务",
+            ),
+            _Divider(),
+            _DrawListText(
+              leading: Icons.palette,
+              title: "主题",
+            ),
+            _Divider(),
+            _DrawListText(
+              leading: Icons.settings,
+              title: "设置",
+            ),
+            _DrawListText(
+              leading: Icons.email,
+              title: "关于",
+            ),
+            _DrawListText(
+              leading: Icons.card_giftcard,
+              title: "捐赠",
+            ),
+            _Divider(),
+            _DrawListText(
+              leading: Icons.settings_backup_restore,
+              title: "备份",
+            ),
+            _DrawListText(
+              leading: Icons.restore,
+              title: "恢复",
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _DrawListText({IconData leading, String title}) {
+    return ListTile(
+      leading: Icon(
+        leading,
+        size: 24,
+        color: Color(0xff595757),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(color: Color(0xde000000)),
+      ),
+    );
+  }
+
+  Widget _ActionBarListText({IconData leading, String title}) {
+    return ListTile(
+      contentPadding: EdgeInsets.only(right: 72),
+      leading: Icon(
+        leading,
+        size: 24,
+        color: Color(0xff595757),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(color: Color(0xde000000)),
+      ),
+    );
+  }
+
+  Widget _Divider() {
+    return Divider(
+      height: 4,
+      color: Color(0xff595757),
     );
   }
 }
