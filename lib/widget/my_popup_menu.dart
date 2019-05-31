@@ -242,9 +242,7 @@ class PopupMenuItemState<T, W extends MyPopupMenuItem<T>> extends State<W> {
     if (!widget.enabled) style = style.copyWith(color: theme.disabledColor);
 
     Widget item = AnimatedDefaultTextStyle(
-        style: style,
-        duration: kThemeChangeDuration,
-        child: buildChild());
+        style: style, duration: kThemeChangeDuration, child: buildChild());
     if (!widget.enabled) {
       final bool isDark = theme.brightness == Brightness.dark;
       item = IconTheme.merge(
@@ -256,11 +254,9 @@ class PopupMenuItemState<T, W extends MyPopupMenuItem<T>> extends State<W> {
     return InkWell(
       onTap: widget.enabled ? handleTap : null,
       child: Container(
-        alignment: Alignment.centerLeft,
         height: widget.height,
-        padding:
-            const EdgeInsets.symmetric(horizontal: _kMenuHorizontalPadding),
-        child: widget.child,
+        padding: EdgeInsets.all(_kMenuScreenPadding),
+        child: item,
       ),
     );
   }
@@ -584,7 +580,6 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
 }
 
 class _PopupMenuRoute<T> extends PopupRoute<T> {
-
   _PopupMenuRoute({
     this.position,
     this.items,
@@ -639,7 +634,11 @@ class _PopupMenuRoute<T> extends PopupRoute<T> {
       }
     }
 
-    Widget menu = _PopupMenu<T>(route: this, semanticLabel: semanticLabel, padding: padding,);
+    Widget menu = _PopupMenu<T>(
+      route: this,
+      semanticLabel: semanticLabel,
+      padding: padding,
+    );
     if (theme != null) menu = Theme(data: theme, child: menu);
 
     return MediaQuery.removePadding(
@@ -823,7 +822,6 @@ typedef PopupMenuItemBuilder<T> = List<MyPopupMenuEntry<T>> Function(
 ///  * [CheckedPopupMenuItem], a popup menu item with a checkmark.
 ///  * [showMenu], a method to dynamically show a popup menu at a given location.
 class MyPopupMenuButton<T> extends StatefulWidget {
-
   /// Creates a button that shows a popup menu.
   ///
   /// The [itemBuilder] argument must not be null.
@@ -840,9 +838,8 @@ class MyPopupMenuButton<T> extends StatefulWidget {
     this.icon,
     this.offset = Offset.zero,
     this.kMenuScreenPadding,
-    this.menuPdding =  const EdgeInsets.symmetric(
-        vertical: _kMenuVerticalPadding
-    ),
+    this.menuPdding =
+        const EdgeInsets.symmetric(vertical: _kMenuVerticalPadding),
   })  : assert(itemBuilder != null),
         assert(offset != null),
         assert(!(child != null && icon != null)),

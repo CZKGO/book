@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_book/page/widget/WidthDrawer.dart';
-import 'package:flutter_book/page/widget/my_popup_menu.dart';
-import 'package:flutter_book/page/AllBookChildPage.dart';
-import 'package:flutter_book/page/FoundChildPage.dart';
+import 'package:flutter_book/page/local/ImportBookPage.dart';
+import 'package:flutter_book/widget/WidthDrawer.dart';
+import 'package:flutter_book/widget/my_popup_menu.dart';
+import 'package:flutter_book/page/home/AllBookChildPage.dart';
+import 'package:flutter_book/page/home/FoundChildPage.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -42,37 +43,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             padding: EdgeInsets.all(0.0),
             kMenuScreenPadding: 0.0,
             menuPdding: EdgeInsets.all(0),
-            itemBuilder: (BuildContext context) => <MyPopupMenuEntry>[
+            itemBuilder: (BuildContext context) =>
+                <MyPopupMenuEntry<_PopupMenu>>[
                   MyPopupMenuItem(
-                    height: 40,
+                    value: _PopupMenu.addLocal,
                     child:
                         _ActionBarListText(leading: Icons.add, title: "添加本地"),
                   ),
                   MyPopupMenuItem(
-                      height: 40,
                       child: _ActionBarListText(
                           leading: Icons.link, title: "添加网址")),
                   MyPopupMenuItem(
-                      height: 40,
                       child: _ActionBarListText(
                           leading: Icons.file_download, title: "一键缓存")),
                   MyPopupMenuItem(
-                      height: 40,
                       child: _ActionBarListText(
                           leading: Icons.list, title: "网格视图")),
                   MyPopupMenuItem(
-                      height: 40,
                       child: _ActionBarListText(
                           leading: Icons.track_changes, title: "切换图标")),
                   MyPopupMenuItem(
-                      height: 40,
                       child: _ActionBarListText(
                           leading: Icons.delete_outline, title: "清除缓存")),
                   MyPopupMenuItem(
-                      height: 40,
                       child: _ActionBarListText(
                           leading: Icons.delete_forever, title: "清空书架")),
                 ],
+            onSelected: _PopupMenuItemSelected,
           ),
         ],
         bottom: TabBar(
@@ -165,22 +162,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         title,
         style: TextStyle(color: Color(0xde000000)),
       ),
+      onTap: () {},
     );
   }
 
   Widget _ActionBarListText({IconData leading, String title}) {
-    return ListTile(
-      contentPadding: EdgeInsets.only(right: 72),
-      leading: Icon(
-        leading,
-        size: 24,
-        color: Color(0xff595757),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(color: Color(0xde000000)),
-      ),
-    );
+    return Baseline(
+        baseline: 48 / 2 + 24 / 2,
+        baselineType: TextBaseline.ideographic,
+        child: ListTile(
+          contentPadding: EdgeInsets.only(
+            left: 8,
+          ),
+          leading: Icon(
+            leading,
+            size: 24,
+            color: Color(0xff595757),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(color: Color(0xde000000)),
+          ),
+        ));
   }
 
   Widget _Divider() {
@@ -189,4 +192,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       color: Color(0xff595757),
     );
   }
+
+  void _PopupMenuItemSelected(_PopupMenu value) {
+    switch (value) {
+      case _PopupMenu.addLocal:
+        Navigator.push(
+          context,
+          new MaterialPageRoute(builder: (context) => new ImportBookPage()),
+        );
+        break;
+    }
+    return;
+  }
 }
+
+enum _PopupMenu { addLocal }
