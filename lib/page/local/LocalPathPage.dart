@@ -13,45 +13,121 @@ class LocalPathPage extends StatefulWidget {
 }
 
 class _LocalPathPage extends State<LocalPathPage>
-    with SingleTickerProviderStateMixin {
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true; //是否保存状态
+
   List<FileSystemEntity> files = [];
+  List<bool> isFileChecds = [];
+  String rootPath;
+  String currentPath;
 
   @override
   void initState() {
     super.initState();
-    _initPathList(null);
+    debugPrint("_LocalPathPage:"+files.length.toString());
+    _initPathList(rootPath);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      itemCount: files.length != 0 ? files.length : 0,
-      physics: ClampingScrollPhysics(),
-      controller: ScrollController(),
-      itemBuilder: (BuildContext context, int index) {
-        return _buildListViewItem(files[index]);
-      },
-      separatorBuilder: (BuildContext context, int index) {
-        return Divider(
-          height: 0.0,
-          color: Colors.grey,
-        );
-      },
-    );
+    return Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Expanded(
+            child: Ink(
+              color: Colors.white,
+              height: 48,
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      alignment: Alignment.centerLeft,
+                      margin: EdgeInsets.only(left: 24),
+                      child: Text(
+                        "存储:",
+                      ),
+                    ),
+                    flex: 1,
+                  ),
+                  InkWell(
+                    onTap: () {
+                      if (currentPath != rootPath) {
+                        _BackPathList(currentPath);
+                      }
+                    },
+                    child: Container(
+                      height: 48,
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.centerLeft,
+                      child: currentPath == rootPath
+                          ? Text(
+                              "",
+                            )
+                          : Row(children: <Widget>[
+                              Icon(Icons.keyboard_return),
+                              Text(
+                                "上一级",
+                              ),
+                            ]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            flex: 0,
+          ),
+          Divider(
+            height: 0.0,
+            color: Colors.grey,
+          ),
+          Expanded(
+            child: Ink(
+                color: Colors.white,
+                child: ListView.separated(
+                  itemCount: files.length != 0 ? files.length : 0,
+                  physics: ClampingScrollPhysics(),
+                  controller: ScrollController(),
+
+                  itemBuilder: (BuildContext context, int index) {
+                    return _buildListViewItem(index);
+                  },
+                  separatorBuilder: (BuildContext context, int index) {
+                    return Divider(
+                      height: 0.0,
+                      color: Colors.grey,
+                    );
+                  },
+                )),
+            flex: 1,
+          ),
+        ]);
   }
 
   void _initPathList(String path) async {
+    if (path != null) {
+      if (FileSystemEntity.isFileSync(path)) return;
+    }
     Directory appDocDir =
         path == null ? await getExternalStorageDirectory() : Directory(path);
+
+    if (this.rootPath == null) this.rootPath = appDocDir.path;
+    currentPath = appDocDir.path;
     setState(() {
-      files = appDocDir.listSync();
-      files.removeWhere((FileSystemEntity file) {
+      List<FileSystemEntity> tempFiles = appDocDir.listSync();
+      tempFiles.removeWhere((FileSystemEntity file) {
         return file.path
-                .substring(file.parent.path.length + 1)
-                .substring(0, 1) ==
-            '.';
+                    .substring(file.parent.path.length + 1)
+                    .substring(0, 1) ==
+                '.' ||
+            (FileSystemEntity.isFileSync(file.path) &&
+                !file.path
+                    .substring(file.parent.path.length + 1)
+                    .endsWith(".txt"));
       });
-      files.sort((FileSystemEntity fileA, FileSystemEntity fileB) {
+      tempFiles.sort((FileSystemEntity fileA, FileSystemEntity fileB) {
         bool aIsFile = FileSystemEntity.isFileSync(fileA.path);
         bool bIsFile = FileSystemEntity.isFileSync(fileB.path);
         if (aIsFile && !bIsFile) {
@@ -62,16 +138,32 @@ class _LocalPathPage extends State<LocalPathPage>
           return Comparable.compare(fileA.path, fileB.path);
         }
       });
+      files = tempFiles;
+      isFileChecds = new List(files.length);
     });
   }
 
-  Widget _buildListViewItem(FileSystemEntity file) {
+  void _BackPathList(String path) {
+    Directory appDocDir = Directory(path);
+    _initPathList(appDocDir.parent.path);
+  }
+
+  Widget _buildListViewItem(int index) {
+    FileSystemEntity file = files[index];
+    bool fileChecd = isFileChecds[index];
     bool isFile = FileSystemEntity.isFileSync(file.path);
     return ListTile(
       leading: isFile
           ? Checkbox(
-              value: false,
-              onChanged: (bool checd) {},
+              materialTapTargetSize: MaterialTapTargetSize.padded,
+              tristate: false,
+              value: fileChecd == null ? false : fileChecd,
+              activeColor: Color(0xffD81B60),
+              onChanged: (bool checd) {
+                setState(() {
+                  isFileChecds[index] = checd;
+                });
+              },
             )
           : Icon(
               Icons.folder,
@@ -89,7 +181,13 @@ class _LocalPathPage extends State<LocalPathPage>
             ),
       trailing: isFile ? null : Icon(Icons.chevron_right),
       onTap: () {
-        _initPathList(file.path);
+        if (FileSystemEntity.isFileSync(file.path)) {
+          setState(() {
+            isFileChecds[index] = (fileChecd == null ? true : !fileChecd);
+          });
+        } else {
+          _initPathList(file.path);
+        }
       },
     );
   }
