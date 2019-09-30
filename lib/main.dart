@@ -3,11 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_book/page/home/HomePage.dart';
 
+import 'data/sql_help.dart';
+
 void main() => runApp(new MyApp());
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SqlHelp();
     return MaterialApp(
       title: "Book",
       theme: ThemeData(

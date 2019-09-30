@@ -4,26 +4,50 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'ImportBookPage.dart';
+
 class SmartImportPage extends StatefulWidget {
+  var _smartImportPage;
+  var _rootPage;
+
+  SmartImportPage(_importBookPage) {
+    this._rootPage = _importBookPage;
+  }
+
   @override
   State<StatefulWidget> createState() {
-    return _SmartImportPage();
+    _smartImportPage = _SmartImportPage(this._rootPage);
+    return _smartImportPage;
+  }
+
+  void selectAll(bool isSelectAll) {
+    if (_smartImportPage != null) {
+      _smartImportPage.selectAll(isSelectAll);
+    }
+  }
+
+  List<String> getSelectFilePath() {
+    return _smartImportPage.getSelectFilePath();
   }
 }
 
 class _SmartImportPage extends State<SmartImportPage>
-    with AutomaticKeepAliveClientMixin{
+    with AutomaticKeepAliveClientMixin {
+  var _rootPage;
+
+  _SmartImportPage(_importBookPage) {
+    this._rootPage = _importBookPage;
+  }
+
   @override
   bool get wantKeepAlive => true; //是否保存状态
 
-  List<FileSystemEntity> files = [];
-  List<bool> isFileChecds = [];
+  MyFiles myFiles;
 
   @override
   void initState() {
     super.initState();
-    debugPrint(files.length.toString());
-    if (files.length == 0) _initPathList();
+    _initPathList();
   }
 
   @override
@@ -31,7 +55,7 @@ class _SmartImportPage extends State<SmartImportPage>
     return Ink(
         color: Colors.white,
         child: ListView.separated(
-          itemCount: files.length != 0 ? files.length : 0,
+          itemCount: myFiles != null ? myFiles.length : 0,
           physics: ClampingScrollPhysics(),
           controller: ScrollController(),
           itemBuilder: (BuildContext context, int index) {
@@ -46,6 +70,23 @@ class _SmartImportPage extends State<SmartImportPage>
         ));
   }
 
+  void selectAll(bool isSelectAll) async {
+    for (int i = 0; i < myFiles.length; i++) {
+      myFiles.checkItem(i, isSelectAll);
+    }
+    setState(() {});
+  }
+
+  List<String> getSelectFilePath() {
+    List<String> paths = [];
+    for (int i = 0; i < myFiles.length; i++) {
+      if (myFiles.isCheck(i) != null && myFiles.isCheck(i)) {
+        paths.add(myFiles.getFile(i).path);
+      }
+    }
+    return paths;
+  }
+
   void _initPathList() async {
     Directory appDocDir = await getExternalStorageDirectory();
     List<FileSystemEntity> allTextFiles = await _getAllTxt(appDocDir);
@@ -53,8 +94,7 @@ class _SmartImportPage extends State<SmartImportPage>
       return Comparable.compare(fileA.path, fileB.path);
     });
     setState(() {
-      files = allTextFiles;
-      isFileChecds = new List(files.length);
+      myFiles = MyFiles(allTextFiles);
     });
   }
 
@@ -78,8 +118,8 @@ class _SmartImportPage extends State<SmartImportPage>
   }
 
   Widget _buildListViewItem(int index) {
-    FileSystemEntity file = files[index];
-    bool fileChecd = isFileChecds[index];
+    FileSystemEntity file = myFiles.getFile(index);
+    bool fileChecd = myFiles.isCheck(index);
     return ListTile(
       leading: Checkbox(
         materialTapTargetSize: MaterialTapTargetSize.padded,
@@ -87,9 +127,7 @@ class _SmartImportPage extends State<SmartImportPage>
         value: fileChecd == null ? false : fileChecd,
         activeColor: Color(0xffD81B60),
         onChanged: (bool checd) {
-          setState(() {
-            isFileChecds[index] = checd;
-          });
+          onCheckItem(index, checd);
         },
       ),
       title: Text(file.path.substring(file.parent.path.length + 1)),
@@ -99,10 +137,28 @@ class _SmartImportPage extends State<SmartImportPage>
       ),
       onTap: () {
         setState(() {
-          isFileChecds[index] = (fileChecd == null ? true : !fileChecd);
+          onCheckItem(index, fileChecd == null ? true : !fileChecd);
         });
       },
     );
+  }
+
+  void onCheckItem(int index, bool check) {
+    setState(() {
+      myFiles.checkItem(index, check);
+    });
+    if (!check) {
+      this._rootPage.select(false);
+    } else {
+      for (int i = 0; i < myFiles.length; i++) {
+        if (myFiles.isCheck(i) == null || !myFiles.isCheck(i)) {
+          this._rootPage.select(false);
+          break;
+        } else if (i == myFiles.length - 1) {
+          this._rootPage.select(true);
+        }
+      }
+    }
   }
 
   // 计算文件夹内 文件、文件夹的数量，以 . 开头的除外

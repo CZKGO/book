@@ -3,34 +3,79 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_book/util/file_helper.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'ImportBookPage.dart';
+
 class LocalPathPage extends StatefulWidget {
+  var _localPathPage;
+  var _rootPage;
+
+  LocalPathPage(_importBookPage) {
+    _rootPage = _importBookPage;
+  }
+
   @override
   State<StatefulWidget> createState() {
-    return _LocalPathPage();
+    _localPathPage = _LocalPathPage(_rootPage);
+    return _localPathPage;
+  }
+
+  void selectAll(bool isSelectAll) {
+    if (_localPathPage != null) {
+      _localPathPage.selectAll(isSelectAll);
+    }
+  }
+
+  List<String> getSelectFilePath() {
+    _localPathPage.getSelectFilePath();
   }
 }
 
 class _LocalPathPage extends State<LocalPathPage>
     with AutomaticKeepAliveClientMixin {
   @override
+  var _rootPage;
+
+  _LocalPathPage(rootPage) {
+    _rootPage = rootPage;
+  }
+
   bool get wantKeepAlive => true; //是否保存状态
 
   List<FileSystemEntity> files = [];
-  List<bool> isFileChecds = [];
+  MyFiles myFiles;
   String rootPath;
   String currentPath;
+  String pathText;
 
   @override
   void initState() {
     super.initState();
-    debugPrint("_LocalPathPage:"+files.length.toString());
     _initPathList(rootPath);
   }
 
   @override
   Widget build(BuildContext context) {
+    pathText = "存储:" +
+        (currentPath == null
+            ? ""
+            : currentPath.substring(rootPath == null ? 0 : rootPath.length));
+    var listView = ListView.separated(
+      itemCount: files.length != 0 ? files.length : 0,
+      physics: ClampingScrollPhysics(),
+      controller: ScrollController(),
+      itemBuilder: (BuildContext context, int index) {
+        return _buildListViewItem(index);
+      },
+      separatorBuilder: (BuildContext context, int index) {
+        return Divider(
+          height: 0.0,
+          color: Colors.grey,
+        );
+      },
+    );
     return Column(
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -47,7 +92,9 @@ class _LocalPathPage extends State<LocalPathPage>
                       alignment: Alignment.centerLeft,
                       margin: EdgeInsets.only(left: 24),
                       child: Text(
-                        "存储:",
+                        pathText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     flex: 1,
@@ -55,6 +102,7 @@ class _LocalPathPage extends State<LocalPathPage>
                   InkWell(
                     onTap: () {
                       if (currentPath != rootPath) {
+                        this._rootPage.select(false);
                         _BackPathList(currentPath);
                       }
                     },
@@ -84,26 +132,44 @@ class _LocalPathPage extends State<LocalPathPage>
             color: Colors.grey,
           ),
           Expanded(
-            child: Ink(
-                color: Colors.white,
-                child: ListView.separated(
-                  itemCount: files.length != 0 ? files.length : 0,
-                  physics: ClampingScrollPhysics(),
-                  controller: ScrollController(),
-
-                  itemBuilder: (BuildContext context, int index) {
-                    return _buildListViewItem(index);
-                  },
-                  separatorBuilder: (BuildContext context, int index) {
-                    return Divider(
-                      height: 0.0,
-                      color: Colors.grey,
-                    );
-                  },
-                )),
+            child: Ink(color: Colors.white, child: listView),
             flex: 1,
           ),
         ]);
+  }
+
+  void selectAll(bool isSelectAll) async {
+    for (int i = 0; i < myFiles.length; i++) {
+      myFiles.checkItem(i, isSelectAll);
+    }
+    setState(() {});
+  }
+
+  List<String> getSelectFilePath() {
+    List<String> paths = [];
+    for (int i = 0; i < myFiles.length; i++) {
+      if (myFiles.isCheck(i) != null || myFiles.isCheck(i)) {
+        paths.add(myFiles.getFile(i).path);
+      }
+    }
+    return paths;
+  }
+
+  void onCheckItem(int index, bool check) {
+    myFiles.checkItem(index, check);
+    if (!check) {
+      this._rootPage.select(false);
+    } else {
+      for (int i = 0; i < myFiles.length; i++) {
+        if (myFiles.isCheck(i) == null || !myFiles.isCheck(i)) {
+          this._rootPage.select(false);
+          break;
+        } else if (i == myFiles.length - 1) {
+          this._rootPage.select(true);
+        }
+      }
+    }
+    setState(() {});
   }
 
   void _initPathList(String path) async {
@@ -116,30 +182,34 @@ class _LocalPathPage extends State<LocalPathPage>
     if (this.rootPath == null) this.rootPath = appDocDir.path;
     currentPath = appDocDir.path;
     setState(() {
+      int fileNum = 0; //该目录下text数目
       List<FileSystemEntity> tempFiles = appDocDir.listSync();
       tempFiles.removeWhere((FileSystemEntity file) {
-        return file.path
-                    .substring(file.parent.path.length + 1)
-                    .substring(0, 1) ==
-                '.' ||
-            (FileSystemEntity.isFileSync(file.path) &&
-                !file.path
-                    .substring(file.parent.path.length + 1)
-                    .endsWith(".txt"));
+        var isHiddenFile =
+            file.path.substring(file.parent.path.length + 1).substring(0, 1) ==
+                '.';
+        var isFile = FileSystemEntity.isFileSync(file.path);
+        var isNotTxtFile = isFile &&
+            !file.path.substring(file.parent.path.length + 1).endsWith(".txt");
+        bool result = isHiddenFile || isNotTxtFile;
+        if (isFile && !isNotTxtFile && !isHiddenFile) {
+          fileNum++;
+        }
+        return result;
       });
       tempFiles.sort((FileSystemEntity fileA, FileSystemEntity fileB) {
         bool aIsFile = FileSystemEntity.isFileSync(fileA.path);
         bool bIsFile = FileSystemEntity.isFileSync(fileB.path);
         if (aIsFile && !bIsFile) {
-          return 1;
+          return -1;
         } else if (!aIsFile && bIsFile) {
-          return 0;
+          return 1;
         } else {
           return Comparable.compare(fileA.path, fileB.path);
         }
       });
       files = tempFiles;
-      isFileChecds = new List(files.length);
+      myFiles = MyFiles(files.sublist(0, fileNum));
     });
   }
 
@@ -150,8 +220,11 @@ class _LocalPathPage extends State<LocalPathPage>
 
   Widget _buildListViewItem(int index) {
     FileSystemEntity file = files[index];
-    bool fileChecd = isFileChecds[index];
     bool isFile = FileSystemEntity.isFileSync(file.path);
+    bool fileChecd;
+    if (isFile) {
+      fileChecd = myFiles.isCheck(index);
+    }
     return ListTile(
       leading: isFile
           ? Checkbox(
@@ -160,9 +233,7 @@ class _LocalPathPage extends State<LocalPathPage>
               value: fileChecd == null ? false : fileChecd,
               activeColor: Color(0xffD81B60),
               onChanged: (bool checd) {
-                setState(() {
-                  isFileChecds[index] = checd;
-                });
+                onCheckItem(index, checd);
               },
             )
           : Icon(
@@ -172,7 +243,7 @@ class _LocalPathPage extends State<LocalPathPage>
       title: Text(file.path.substring(file.parent.path.length + 1)),
       subtitle: isFile
           ? Text(
-              '${getFileLastModifiedTime(file)}  ${getFileSize(file)}',
+              '${getFileLastModifiedTimeString(file)}  ${getFileSize(file)}',
               style: TextStyle(fontSize: 12.0),
             )
           : Text(
@@ -182,10 +253,9 @@ class _LocalPathPage extends State<LocalPathPage>
       trailing: isFile ? null : Icon(Icons.chevron_right),
       onTap: () {
         if (FileSystemEntity.isFileSync(file.path)) {
-          setState(() {
-            isFileChecds[index] = (fileChecd == null ? true : !fileChecd);
-          });
+          onCheckItem(index, fileChecd == null ? true : !fileChecd);
         } else {
+          this._rootPage.select(false);
           _initPathList(file.path);
         }
       },
@@ -207,26 +277,7 @@ class _LocalPathPage extends State<LocalPathPage>
     return num;
   }
 
-  getFileSize(FileSystemEntity file) {
-    int fileSize = File(file.resolveSymbolicLinksSync()).lengthSync();
-    if (fileSize < 1024) {
-      // b
-      return '${fileSize.toStringAsFixed(2)}B';
-    } else if (1024 <= fileSize && fileSize < 1048576) {
-      // kb
-      return '${(fileSize / 1024).toStringAsFixed(2)}KB';
-    } else if (1048576 <= fileSize && fileSize < 1073741824) {
-      // mb
-      return '${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB';
-    }
-  }
 
-  getFileLastModifiedTime(FileSystemEntity file) {
-    DateTime dateTime =
-        File(file.resolveSymbolicLinksSync()).lastModifiedSync();
 
-    String time =
-        '${dateTime.year}-${dateTime.month < 10 ? 0 : ''}${dateTime.month}-${dateTime.day < 10 ? 0 : ''}${dateTime.day} ${dateTime.hour < 10 ? 0 : ''}${dateTime.hour}:${dateTime.minute < 10 ? 0 : ''}${dateTime.minute}';
-    return time;
-  }
+
 }
